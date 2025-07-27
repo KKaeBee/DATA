@@ -16,9 +16,8 @@ def convert_hwp_to_pdf(hwp_path: str, output_dir: str) -> dict:
     hwp.RegisterModule("FilePathCheckDLL", "FilePathCheckDLL")
 
     try:
-        hwp.RegisterModule('FilePathCheckDLL','FileAuto') # 보안 모듈 실행 뜨지 않도록 하기
-
         hwp.XHwpWindows.Item(0).Visible = False  # 한글 프로그램 백그라운드 실행
+        hwp.RegisterModule('FilePathCheckDLL','FileAuto') # 보안 모듈 실행 뜨지 않도록 하기
         hwp.Open(hwp_path)
 
         # 저장 설정
