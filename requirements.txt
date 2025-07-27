@@ -1,0 +1,5 @@
+requests
+beautifulsoup4
+pywin32 ; sys_platform == "win32"
+python-docx
+comtypes ; sys_platform == "win32"
