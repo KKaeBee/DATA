@@ -136,6 +136,11 @@ def download_file(filename, url):
     safe_filename = filename_clean.replace("/", "_").replace("\\", "_")
     save_path = os.path.join(PDF_DIR, safe_filename)
 
+    # ✅ 이미 존재하면 다운로드 생략
+    if os.path.exists(save_path):
+        print(f"이미 존재함, 스킵: {save_path}")
+        return save_path
+
     try:
         response = requests.get(url, timeout=15)
         if response.status_code != 200 or len(response.content) < 1024:
@@ -145,7 +150,6 @@ def download_file(filename, url):
             f.write(response.content)
 
         print(f"✅ 저장됨: {save_path} (MIME: {mime})")
-        print(f"파일 확장자: {ext}, MIME 타입 추정: {mime}")
 
         if not is_valid_pdf(save_path):
             raise Exception("저장된 파일이 유효한 PDF가 아님")
@@ -157,6 +161,7 @@ def download_file(filename, url):
         if os.path.exists(save_path):
             os.remove(save_path)
         return None
+
 
 def main(max_pages=3):
     all_notices = []
@@ -173,7 +178,7 @@ def main(max_pages=3):
 
                     notice["attachments"].append({
                         "filename": filename,
-                        "path": save_path,
+                        "path": "pdf/" + filename,
                         "text": text
                     })
 
