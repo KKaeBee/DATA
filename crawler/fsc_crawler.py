@@ -2,6 +2,7 @@ import os
 import json
 import time
 import requests
+import re
 from datetime import datetime
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -82,7 +83,7 @@ def fetch_notice_list(page):
         if end_date > datetime.today().date():
             notice_list.append({
                 "title": title,
-                "data": period,
+                "date": period,
                 "source": "금융위원회",
                 "url": full_url,
                 "notice_type": notice_type,
@@ -123,7 +124,7 @@ def extract_pdf_text(filepath):
         return ""
 
 def download_file(filename, url):
-    filename_clean = filename.split(' (')[0].strip()
+    filename_clean = re.sub(r"(?<=\.pdf)\s*\(\d+\s*(KB|MB|bytes)\)", "", filename).strip()
     ext = os.path.splitext(filename_clean)[1].lower().strip()
 
     if ext != ".pdf":
@@ -136,7 +137,6 @@ def download_file(filename, url):
     safe_filename = filename_clean.replace("/", "_").replace("\\", "_")
     save_path = os.path.join(PDF_DIR, safe_filename)
 
-    # ✅ 이미 존재하면 다운로드 생략
     if os.path.exists(save_path):
         print(f"이미 존재함, 스킵: {save_path}")
         return save_path
@@ -175,11 +175,11 @@ def main(max_pages=3):
                 save_path = download_file(filename, url)
                 if save_path:
                     text = extract_pdf_text(save_path)
-
+                    filename_clean = os.path.basename(save_path)
                     notice["attachments"].append({
-                        "filename": filename,
-                        "path": "pdf/" + filename,
-                        "text": text
+                        "filename": filename_clean,
+                        "path": "data/pdf/" + filename_clean,
+                        "text": " "
                     })
 
         all_notices.extend(notices)
