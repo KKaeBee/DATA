@@ -179,12 +179,12 @@ def main(max_pages=3):
                     notice["attachments"].append({
                         "filename": filename_clean,
                         "path": "data/pdf/" + filename_clean,
-                        "text": " "
+                        "text": ""
                     })
 
         all_notices.extend(notices)
 
-    json_path = os.path.join(JSON_DIR, "fsc_crawler.json")
+    json_path = os.path.join(JSON_DIR, "fsc.json")
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(all_notices, f, indent=2, ensure_ascii=False)
 
