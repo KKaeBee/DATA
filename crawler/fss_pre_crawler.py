@@ -5,20 +5,23 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 import re
 import sys
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from converter.hwp_to_pdf import convert_hwp_to_pdf
+from converter.xlsx_to_pdf import convert_xlsx_to_pdf
 
-# 상수 경로 설정
 BASE_URL = "https://www.fss.or.kr"
 LIST_URL = f"{BASE_URL}/fss/job/lrgRegItnPrvntc/list.do"
-DETAIL_BASE = f"{BASE_URL}/fss/job/lrgRegItnPrvntc"
-
 HWP_DIR = "data/hwp"
+XLSX_DIR = "data/xlsx"
 PDF_DIR = "data/pdf"
+IMG_DIR = "data/img"
 JSON_PATH = "data/json/fss_pre.json"
 
 os.makedirs(HWP_DIR, exist_ok=True)
+os.makedirs(XLSX_DIR, exist_ok=True)
 os.makedirs(PDF_DIR, exist_ok=True)
+os.makedirs(IMG_DIR, exist_ok=True)
 os.makedirs("data/json", exist_ok=True)
 
 def crawl():
@@ -34,7 +37,7 @@ def crawl():
 
         rows = soup.select("table tbody tr")
         if not rows:
-            print("게시글 행 없음, 종료")
+            print("게시글 없음, 종료")
             break
 
         for row in rows:
@@ -42,27 +45,26 @@ def crawl():
             if len(tds) < 3:
                 continue
 
-            # 제목 및 상세 URL
-            title_cell = tds[1]
-            a_tag = title_cell.find("a")
+            a_tag = tds[1].find("a")
             if not a_tag:
                 continue
 
             title = a_tag.get_text(strip=True)
-            relative_url = a_tag.get("href", "")
-            detail_url = urljoin(BASE_URL, relative_url)
-
-            # 날짜 추출
+            detail_url = urljoin(BASE_URL, a_tag.get("href"))
             date_str = tds[2].get_text(strip=True)
+
             if not date_str.startswith("2025"):
-                print(f"2025년 이전 게시물 도달, 크롤링 종료")
+                print("2025년 이전 게시물 도달, 종료")
                 return results
 
-            print(f"게시글: {title} / 날짜: {date_str}")
-            print(f"상세 페이지 접속: {detail_url}")
+            print(f"\n게시글: {title} / 날짜: {date_str}")
+            print(f"상세 페이지: {detail_url}")
 
-            # 상세 페이지에서 본문과 첨부 추출
-            text, attachment = get_detail_info(detail_url)
+            attachments, already_exists = get_detail_info(detail_url)
+
+            if already_exists:
+                print("최신 PDF가 이미 존재함. 크롤링 종료.")
+                return results
 
             results.append({
                 "title": title,
@@ -70,8 +72,8 @@ def crawl():
                 "source": "금융감독원",
                 "url": detail_url,
                 "type": "세칙제개정예고",
-                "attachments": attachment,
-                "text": text
+                "attachments": attachments,
+                "text": ""
             })
 
         page_index += 1
@@ -81,48 +83,53 @@ def crawl():
 def get_detail_info(detail_url):
     res = requests.get(detail_url)
     soup = BeautifulSoup(res.text, "html.parser")
-
-    # 본문 텍스트
-    text_block = soup.select_one("ol.number-title")
-    text = text_block.get_text(separator="\n", strip=True) if text_block else ""
-
-    # 첨부파일
     attachment_div = soup.select_one("div.file-list__set")
-    attachment = None
-    if attachment_div:
-        a_tags = attachment_div.find_all("a")
-        for a_tag in a_tags:
-            filename = a_tag.get_text(strip=True)
-            file_href = a_tag.get("href", "")
-            file_url = urljoin(detail_url, file_href)
 
-            print(f"첨부파일 다운로드: {filename}")
+    attachments = []
+    if not attachment_div:
+        return attachments, False
 
-            if filename.endswith(".hwp"):
-                # HWP 절대 경로로 저장
-                hwp_path = os.path.abspath(os.path.normpath(os.path.join(HWP_DIR, filename)))
-                with open(hwp_path, "wb") as f:
-                    f.write(requests.get(file_url).content)
-                print(f"저장된 HWP 경로: {hwp_path}")
+    for a_tag in attachment_div.find_all("a"):
+        filename = a_tag.get_text(strip=True)
+        file_url = urljoin(detail_url, a_tag.get("href"))
+        ext = os.path.splitext(filename)[1].lower()
 
-                # PDF 절대 경로 전달
-                pdf_dir_abs = os.path.abspath(PDF_DIR)
-                text, attachment = convert_hwp_to_pdf(hwp_path, pdf_dir_abs)
+        if ext == ".hwp":
+            local_path = os.path.abspath(os.path.join(HWP_DIR, filename))
+            with open(local_path, "wb") as f:
+                f.write(requests.get(file_url).content)
 
-                print(f"HWP → PDF 변환 완료: {attachment['path']}")
-                break
+            pdf_path = os.path.join(PDF_DIR, os.path.splitext(filename)[0] + ".pdf")
+            if os.path.exists(pdf_path):
+                print(f"이미 변환된 PDF 있음: {pdf_path}")
+                return [], True
 
-            elif filename.endswith(".pdf") and not attachment:
-                pdf_path = os.path.join(PDF_DIR, filename)
-                with open(pdf_path, "wb") as f:
-                    f.write(requests.get(file_url).content)
-                attachment = {
-                    "filename": filename,
-                    "path": f"pdf/{filename}"
-                }
-                print(f"PDF 첨부 저장 완료")
+            _, attach = convert_hwp_to_pdf(local_path, PDF_DIR)
 
-    return text, attachment
+        elif ext == ".xlsx":
+            local_path = os.path.abspath(os.path.join(XLSX_DIR, filename))
+            with open(local_path, "wb") as f:
+                f.write(requests.get(file_url).content)
+
+            pdf_path = os.path.join(PDF_DIR, os.path.splitext(filename)[0] + ".pdf")
+            if os.path.exists(pdf_path):
+                print(f"이미 변환된 PDF 있음: {pdf_path}")
+                return [], True
+
+            _, attach = convert_xlsx_to_pdf(local_path, PDF_DIR)
+
+        else:
+            continue
+
+        base = os.path.splitext(attach["filename"])[0]
+        attach.update({
+            "imgname": base + ".jpg",
+            "imgpath": f"data/img/{base}.jpg",
+            "path": f"data/{attach['path']}"
+        })
+        attachments.append(attach)
+
+    return attachments, False
 
 if __name__ == "__main__":
     data = crawl()
