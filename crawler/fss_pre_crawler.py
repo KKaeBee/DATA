@@ -9,6 +9,7 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from converter.hwp_to_pdf import convert_hwp_to_pdf
 from converter.xlsx_to_pdf import convert_xlsx_to_pdf
+from converter.pdf_to_jpg import convert_pdf_to_jpg
 
 BASE_URL = "https://www.fss.or.kr"
 LIST_URL = f"{BASE_URL}/fss/job/lrgRegItnPrvntc/list.do"
@@ -121,12 +122,15 @@ def get_detail_info(detail_url):
         else:
             continue
 
-        base = os.path.splitext(attach["filename"])[0]
-        attach.update({
-            "imgname": base + ".jpg",
-            "imgpath": f"data/img/{base}.jpg",
-            "path": f"data/{attach['path']}"
-        })
+        # PDF -> jpg
+        all_imgs = convert_pdf_to_jpg(PDF_DIR, IMG_DIR)
+        for img_info in all_imgs:
+            if img_info["filename"] == attach["filename"]:
+                attach["imgname"] = img_info["imgname"]
+                attach["imgpath"] = img_info["imgpath"]
+                break
+
+        attach["path"] = f"data/{attach['path']}"
         attachments.append(attach)
 
     return attachments, False
