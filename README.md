@@ -1,36 +1,45 @@
-# 금융감독원 세칙제개정예고 크롤러
+# 금융감독원/금융위원회 크롤러
 
-### 금융감독원(FSS) 웹사이트에서 **세칙 제·개정 예고**를 크롤링하고, 첨부된 `.hwp`, `.xlsx` 파일을 자동으로 `.pdf`, `.jpg`로 변환하여 저장한 뒤, 구조화된 JSON으로 결과를 저장하는 Python 기반 크롤러입니다.
+### 금융감독원(FSS)과 금융위원회(FSC) 웹사이트에서 **최근 제개정 정보**와 **세칙 제·개정 예고**, **입법예고/규정변경예고**를 크롤링하고, 첨부된 `.hwp`, `.xlsx` 파일을 자동으로 `.pdf`, `.jpg`로 변환하여 저장한 뒤, 구조화된 JSON으로 결과를 저장하는 Python 기반 크롤러입니다.
 ---
 ## 🛠 주요 기능
 
 - **2025년도 게시글만 수집**
+- **예고 기간이 7월인 것까지 수집**
 - **게시글 제목, 날짜, URL, 첨부파일 정보 크롤링**
 - **`.hwp`, `.xlsx`, `.pdf` 첨부파일 자동 저장**
 - **`.hwp`/`.xlsx` → `.pdf` 자동 변환**
 - **`.pdf` → `.jpg` (모든 페이지 이미지화)**
-- **변환된 파일 메타정보를 JSON(`fss_pre.json`)에 구조화 저장**
+- **변환된 파일 메타정보를 JSON 파일에 구조화 저장**
 - **가장 최신 게시글의 PDF가 이미 존재하면 즉시 종료**
 ---
 ## 📂 프로젝트 구조
 
 ```bash
-DATA/
-├── crawler/
-│ └── fss_pre_crawler.py # 메인 크롤러 실행 파일
-├── converter/
-│ ├── hwp_to_pdf.py # .hwp → .pdf 변환 모듈
-│ ├── xlsx_to_pdf.py # .xlsx → .pdf 변환 모듈
-│ └── pdf_to_jpg.py # .pdf → .jpg 변환 모듈
-├── data/
-│ ├── hwp/ # 수집된 .hwp 파일 저장 경로
-│ ├── xlsx/ # 수집된 .xlsx 파일 저장 경로
-│ ├── pdf/ # 변환된 PDF 저장 경로
-│ ├── img/ # 변환된 JPG 저장 경로
-│ └── json/
-│ └── fss_pre.json # 크롤링 결과 저장 파일
-├── requirements.txt # 필요한 파이썬 패키지 목록
-└── README.md # 프로젝트 설명서
+project/
+│
+├── 📁 data/                     # 수집/변환된 실제 파일 저장소
+│   ├── 📁 pdf/                  # 변환된 PDF 저장소
+│   ├── 📁 img/                  # 변환된 jpg 저장소
+│   └── 📁 json/                 # 최종 JSON 저장 결과
+│       └── fss_info.json         # 금융감독원 json 파일1
+│       └── fss_pre.json          # 금융감독원 json 파일2
+│       └── fsc.json              # 금융위원회 json 파일
+│
+├── 📁 crawler/                  # 웹 크롤링 관련 코드
+│   ├── fss_info_crawler.py       # 금융감독원 크롤러1
+│   ├── fss_pre_crawler.py        # 금융감독원 크롤러2
+│   └── fsc_crawler.py            # 금융위원회 크롤러
+│
+├── 📁 converter/                # 파일 변환 로직
+│   └── hwp_to_pdf_info.py        # pywin32 기반 HWP → PDF 변환기
+│   └── hwp_to_pdf_pre.py         # pywin32 기반 HWP → PDF 변환기
+│   └── xlsx_to_pdf_info.py       # XLSX → PDF 변환기
+│   └── xlsx_to_pdf_pre.py        # XLSX → PDF 변환기
+|   └── pdf_to_jpg.py             # PDF에서 이미지 추출
+|
+├── requirements.txt            # 필요한 라이브러리 목록
+└── README.md                   # 프로젝트 설명
 ```
 ---
 ## 🚀 실행 방법
@@ -50,7 +59,9 @@ pip install -r requirements.txt
 ```
 ### 3️⃣ 크롤러 실행
 ```bash
+python crawler/fss_info_crawler.py
 python crawler/fss_pre_crawler.py
+python crawler/fsc_crawler.py
 ```
 ---
 ## ✅ JSON 예시

@@ -7,8 +7,8 @@ import re
 import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from converter.hwp_to_pdf import convert_hwp_to_pdf
-from converter.xlsx_to_pdf import convert_xlsx_to_pdf
+from converter.hwp_to_pdf_pre import convert_hwp_to_pdf
+from converter.xlsx_to_pdf_pre import convert_xlsx_to_pdf
 from converter.pdf_to_jpg import convert_pdf_to_jpg
 
 BASE_URL = "https://www.fss.or.kr"
