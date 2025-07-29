@@ -17,14 +17,10 @@ def convert_hwp_to_pdf(hwp_path: str, output_dir: str) -> dict:
     hwp.RegisterModule("FilePathCheckDLL", "FilePathCheckDLL")
 
     try:
-        hwp.RegisterModule(
-            "FilePathCheckDLL", "FileAuto"
-        )  # 보안 모듈 실행 뜨지 않도록 하기
-
-        hwp.XHwpWindows.Item(0).Visible = False  # 한글 프로그램 백그라운드 실행
+        hwp.RegisterModule("FilePathCheckDLL", "FileAuto")
+        hwp.XHwpWindows.Item(0).Visible = False
         hwp.Open(hwp_path)
 
-        # 저장 설정
         hwp.HAction.GetDefault("FileSaveAs_S", hwp.HParameterSet.HFileOpenSave.HSet)
         hwp.HParameterSet.HFileOpenSave.filename = pdf_path
         hwp.HParameterSet.HFileOpenSave.Format = "PDF"
@@ -38,5 +34,6 @@ def convert_hwp_to_pdf(hwp_path: str, output_dir: str) -> dict:
 
     finally:
         hwp.Quit()
+        del hwp
 
-    return "", {"filename": pdf_filename, "path": f"pdf/{pdf_filename}"}
+    return "", {"filename": pdf_filename, "path": f"data/pdf/{pdf_filename}"}
